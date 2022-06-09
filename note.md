@@ -511,3 +511,25 @@ int main()
 强制->类型转换
 
 层次->类型塔（继承）
+
+
+# 模块化、对象和状态
+
+## python tuple
+不可变
+```python 
+code = ("up", "up", "down", "down") + ("left", "right") * 2
+```
+
+dictionary 的键值需要immutable
+
+## 引入non-local assignment的好处
+每个functor可以维持自己的状态
+
+## 引入non-local assignment的代价
+identity or equal?
+
+
+what it means for two values to be the same?
+
+### Implementing Lists and Dictionaries

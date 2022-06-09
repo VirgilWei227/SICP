@@ -135,4 +135,3 @@ def scale_tree(li, factor):
 def square_tree(li):
     square = lambda x: x * x
     return tree_map(square, li)
-
