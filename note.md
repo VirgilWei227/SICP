@@ -521,7 +521,9 @@ int main()
 code = ("up", "up", "down", "down") + ("left", "right") * 2
 ```
 
-dictionary 的键值需要immutable
+tuple中有list，可以改变list内的值。
+
+dictionary 的键值需要immutable。
 
 ## 引入non-local assignment的好处
 每个functor可以维持自己的状态
@@ -533,3 +535,64 @@ identity or equal?
 what it means for two values to be the same?
 
 ### Implementing Lists and Dictionaries
+
+## Implicit Sequences
+惰性求值：program that delays the computation of a value until that value is needed.
+
+### 惰性求值的函数
+map, zip and reversed是惰性求值
+
+### generator
+A generator is an iterator returned by a special class of function called a generator function.
+
+区分生成函数：yield
+
+generator.\_\_next\_\_()->调用生成函数
+
+yield->resume
+
+### Iterable interface
+如果一个对象在调用其 \_\_iter\_\_ 方法时返回一个迭代器，则它是可迭代的。可迭代值表示数据集合，它们提供了一种固定的表示形式，可以产生多个迭代器。
+
+注意区分迭代器（iterator）和可迭代对象（Iterable）
+
+可以用iter()获取一个Iterable的iterator
+
+yield 可以使\_\_iter\_\_ 每次调用返回全新instance->得到与next类似的功能
+
+```python
+class LettersWithYield:
+        def __init__(self, start='a', end='e'):
+            self.start = start
+            self.end = end
+        def __iter__(self):
+            next_letter = self.start
+            while next_letter < self.end:
+                yield next_letter
+                next_letter = chr(ord(next_letter)+1)
+```
+
+直接使用next，此时为iterator：
+```python
+class LetterIter:
+        """An iterator over letters of the alphabet in ASCII order."""
+        def __init__(self, start='a', end='e'):
+            self.next_letter = start
+            self.end = end
+        def __next__(self):
+            if self.next_letter == self.end:
+                raise StopIteration
+            letter = self.next_letter
+            self.next_letter = chr(ord(letter)+1)
+            return letter
+```
+
+iterator是mutable，iterator是lazy的
+
+## Stream
+
+### Python Streams
+
+Like an Link, the rest of a Stream is itself a Stream. Unlike an Link, the rest of a stream is only computed when it is looked up, rather than being stored in advance. 
+
+rest 部分惰性求值
