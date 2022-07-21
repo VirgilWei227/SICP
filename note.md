@@ -589,6 +589,197 @@ class LetterIter:
 
 iterator是mutable，iterator是lazy的
 
+## python class
+
+getattr(instance, 'attribute')
+
+hasattr(instance, 'attribute')
+
+```python
+>>> type(Account.deposit)
+<class 'function'>
+>>> type(spock_account.deposit)
+<class 'method'>
+```
+
+A central concept in object abstraction is a _generic function_, 接受多种类型的值
+* shared interfaces
+* type dispatching
+* type coercion
+
+Python 规定所有对象都应该产生两种不同的字符串表示形式：一种是人类可解释的文本，一种是 Python 可解释的表达式。
+
+```python
+repr(object) -> string
+
+str(object)
+
+def repr(x):
+    return type(x).__repr__(x)
+```
+
+Return the canonical string representation of the object. For most object types, eval(repr(object)) == object.
+
+repr应该是一个polymorphic function，one that can be applied to many (_poly_) different forms (_morph_) of data.
+
+调用instance的\_\_str\_\_().
+
+str()调用**类**的\_\_str\_\_()而非**instance**的\_\_str\_\_()
+```python
+class Bear:
+    def __init__(self):
+        self.__repr__ = lambda: 'oski'
+        self.__str__ = lambda: 'this bear'
+    
+    def __repr__(self):
+        return 'Bear()'
+
+    def __str__(self):
+        return 'a bear'
+
+oski = Bear()
+print(oski)                 # a bear
+print(str(oski))            # a bear
+print(repr(oski))           # Bear()
+print(oski.__str__())       # this bear
+print(oski.__repr__())      # oski
+```
+
+### Special Methods
+* \_\_bool\_\_
+* \_\_len\_\_
+* \_\_getitem\_\_
+* \_\_call\_\_
+
+```python
+class Adder(object):
+    def __init__(self, n):
+        self.n = n
+    def __call__(self, k):
+        return self.n + k
+
+>>> add_three_obj = Adder(3)
+>>> add_three_obj(4)
+7
+```
+### shared interface
+见./code/extensible_data_abstraction/complex.py
+
+### type dispatching
+见./code/extensible_data_abstraction/rational.py
+
+![](./fig/%E5%B1%8F%E5%B9%95%E6%88%AA%E5%9B%BE%202022-07-04%20002044.png)
+![](./fig/%E5%B1%8F%E5%B9%95%E6%88%AA%E5%9B%BE%202022-07-04%20001640.png)
+![](./fig/%E5%B1%8F%E5%B9%95%E6%88%AA%E5%9B%BE%202022-07-04%20002130.png)
+![](./fig/%E5%B1%8F%E5%B9%95%E6%88%AA%E5%9B%BE%202022-07-04%20002242.png)
+
+This dictionary-based approach to type dispatching is extensible. New subclasses of Number could install themselves into the system by declaring a type tag and adding cross-type operations to Number.adders and Number.multipliers. They could also define their own adders and multipliers in a subclass.
+### type coercion
+rational -> complex
+
+![](./fig/%E5%B1%8F%E5%B9%95%E6%88%AA%E5%9B%BE%202022-07-04%20003453.png)
+
+注意强制类型转换中的信息消失（精度损失等）
+
+### Set
+* set.union(set)
+* set.intersection(set)
+* set.add()
+* set.remove()
+* set.discard()
+
+### F-string (String Interpolation)
+```python
+f'pi starts with {pi}...'
+```
+
+## 赋值和局部状态
+```clojure
+(define new-withdraw
+    (let ((balance 100))
+        (lambda (amount)
+            (if (>= balance amount)
+                (begin (set! balance (- balance amount))
+                        balance)
+                "Insufficient funds"))))
+```
+
+### 引进赋值带来的利益
+模拟局部状态随时间变化的对象
+
+### 引进赋值的代价
+不用任何赋值的程序设计->函数式程序设计
+
+代换模型不再适用，对于无赋值过程：
+```clojure
+(define (make-decrementer balance)
+    (lambda (amount)
+        (- balance amount)))
+```
+可以利用代换模型：
+```clojure
+((make-decrementer 25) 20)
+
+((lambda (amount) (- 25 amount)) 20)
+
+(- 25 20)
+```
+
+对于有赋值过程：
+```clojure
+(define (make-simplified-withdraw balance)
+    (lambda (amount)
+        (set! balance (- balance amount))
+        balance))
+```
+如果进行代换分析：
+```clojure
+((make-simplified-withdraw 25) 20)
+
+((lambda (amount) (set! balance (- 25 amount)) 25) 20)
+;;  对于 (set! balance (- 25 amount)) 25，先将balance设置为5，然后返回25
+;;
+```
+代换模型无法区分变量变动前后的值。现在的变量（a variable can no longer be simply a name）。
+Now a variable somehow refers to a place where a value can be stored，and the value stored at this place can change.
+
+A language that supports the concept that ``equals can be substituted for equals'' in an expresssion without
+changing the value of the expression is said to be referentially transparent. Equals可一相互替换，则语言具有**引用透明性**。引入赋值打破引用透明性。side effect对别名（alias）的影响。
+
+* 同一性
+* 命令式语言的缺陷：表达式的求值顺序
+
+## 求值的环境模型
+变量具有“位置”。these places will be maintained in structures called **environments**. An environment is a sequence of **frames**. Each frame is a table (possibly empty) of **bindings**。bindings 将一些name关联于对应的值，一个frame内，任何变量只能对应一个binding，一个frame还包含pointer指向外部环境（enclosing environment）。如果没有外围环境，那讨论的frame就是全局的。**The value of a variable** with respect to an environment is the value given by the binding of the variable in the first frame in the environment that contains a binding for that variable.
+If no frame in the sequence specifies a binding for the variable, then the variable is said to be unbound in the environment.
+
+![](./fig/%E5%B1%8F%E5%B9%95%E6%88%AA%E5%9B%BE%202022-07-21%20220643.png)
+
+3个frame，A、B、C、D是环境指针。
+
+### 求值规则
+1. 求值各个子表达式（程序不应该依赖子表达式的顺序）
+2. 将运算符子表达式的值应用于运算对象子表达式的值
+
+
+* constructing a frame -> binding the formal parameters to the argument -> evaluating the procedure in the new environment constructed (新frame的enclosing environment 是创建该过程的environment).
+
+对于赋值来说：lookup binding -> 修改binding以表示新值
+
+### Frames as the Repository of Local State
+![](./fig/%E5%B1%8F%E5%B9%95%E6%88%AA%E5%9B%BE%202022-07-21%20225959.png)
+
+应用对象时，
+```clojure
+(define W1 (make-withdraw 100))
+
+(W1 50)
+```
+关键在于创建W1时新创建了一个environment，对应的frame中binding balance到100。
+
+### 环境模型中的内部定义
+* 局部过程中的name不会与过程外的name相互干扰，因为这些局部过程名在该过程运行时创建的frame里进行binding
+
 ## Stream
 
 ### Python Streams
