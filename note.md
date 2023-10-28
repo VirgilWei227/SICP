@@ -780,7 +780,115 @@ If no frame in the sequence specifies a binding for the variable, then the varia
 ### 环境模型中的内部定义
 * 局部过程中的name不会与过程外的name相互干扰，因为这些局部过程名在该过程运行时创建的frame里进行binding
 
+## 变动数据的建模
+
+### 变动的表结构
+* set-car!
+* set-cdr!
+
+#### 共享和相等
+
+### 队列的表示
+只能从一端插入另一端删除
+
+* make-queue
+* empty-queue?
+* front-queue (不修改队列)
+* insert-queue! <queue><item>
+* delete-queue! <queue>
+
+### 表格的表示
+
+### 数字电路模拟器
+
+## 并发：时间是一个本质问题
+
+锁的实现：检查和设置之间禁止时间分片
+
+其他方式：内存屏障
+
+延展->分布式系统中的并发
+
 ## Stream
+流：lazy的表
+
+* delay \<exp\> -> 延时对象
+* force 延时对象
+
+```clojure
+(cons-stream <a> <b>)
+;; 等价于
+(cons <a> (delay <b>))
+
+(define (stream-car stream) (car stream))
+(define (stream-cdr stream) (force (cdr stream)))
+```
+![](./fig/%E5%B1%8F%E5%B9%95%E6%88%AA%E5%9B%BE%202022-08-04%20000056.png)
+
+流处理的每个阶段都仅仅活动到满足下一个阶段的程度，松弛了事件发生顺序和过程的表面结构的关系。
+
+```clojure
+(delay <exp>)
+(lambda () <exp>)
+
+;;
+(define (force delayed-object)
+    (delayed-object))
+
+;;记忆性->多次force时不必多次计算
+(define (memo-proc proc)
+    (let ((already-run? false) (result false))
+        (lambda ()
+            (if (not already-run?)
+                (begin (set! result (proc))
+                       (set! already-run? true)
+                       result)
+                result))))
+(delay <exp>);;等价于
+(memo-proc (lambda () <exp>))
+```
+
+### 无穷流
+```clojure
+(define (intergers-starting-from n)
+    (cons-stream n (intergers-starting-from (+ n 1))))
+(define integers (integers-starting-from 1))
+```
+
+厄拉多塞筛法：构造素数流
+```clojure
+(define (sieve stream)
+    (cons-stream
+        (stream-car stream)
+        (sieve (stream-filter
+                (lambda (x)
+                    (not (divisible? x (stream-car stream))))
+                (stream-cdr stream)))))
+
+(define primes (sieve (integers-starting-from 2)))
+```
+![](./fig/%E5%B1%8F%E5%B9%95%E6%88%AA%E5%9B%BE%202022-08-04%20225115.png)
+
+#### 可以用流A定义流A
+![](./fig/%E5%B1%8F%E5%B9%95%E6%88%AA%E5%9B%BE%202022-08-04%20233741.png)
+![](./fig/%E5%B1%8F%E5%B9%95%E6%88%AA%E5%9B%BE%202022-08-04%20233818.png)
+
+#### 流实现分数除法
+3.58
+![](./fig/%E5%B1%8F%E5%B9%95%E6%88%AA%E5%9B%BE%202022-08-04%20235717.png)
+
+### 流计算模式的使用
+提供局部状态和赋值的许多效益，避免引入赋值的理论困难。
+
+#### 序对的无穷流
+用流S和流T生成(pairs S T):
+
+![](./fig/pair_S_T.png)
+
+### 流和延时求值
+delay至关重要！
+
+变动性和和延时求值在程序设计语言里结合的不好。（ex-3.51, ex-3.52）
 
 ### Python Streams
 
