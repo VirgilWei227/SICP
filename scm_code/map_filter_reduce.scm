@@ -114,3 +114,15 @@
                             (enumerate-interval 1 board-size)))
                     (queen-cols (- k 1))))))
     (queen-cols board-size))
+
+(define (corner-split painter n)
+    (if (= n 0)
+        painter
+        (let ((up (up-split painter (- n 1)))
+              (right (right-split painter (- n 1)))
+              (bottom (bottom-split painter (- n 1))))
+            (let ((top-left (beside (below center center) center))
+                  (top-right (beside (below center center) center))
+                  (corner (corner-split center (- n 1))))
+                (below (beside top-left top-right)
+                        (beside bottom-left bottom-right))))))

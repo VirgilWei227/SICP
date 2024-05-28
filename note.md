@@ -494,17 +494,91 @@ int main()
 ```
 
 ## 可加性
-基于类型的分派不具有可加性
+基于类型的分派不具有可加性，每次增加一个类型都需要修改所有的分派函数。
 
 数据导向or消息传递
 
 ### 数据导向
+处理不同类型的公共通用型操作时，是在处理一张二维表，行是操作，列是类型。
+![](./fig/复数系统的操作表.png)
+
 将\<op>和\<type>建表，通过
 ```clojure
 (put <op> <type> <item>)
 (get <op> <type>)
 ```
+
+```clojure
+(define (install-rectangular-package)
+;;internal procedures
+    (define (real-part z) (car z))
+    (define (imag-part z) (cdr z))
+    (define (make-from-real-imag x y) (cons x y))
+    (define (magnitude z)
+        (sqrt (+ (square (real-part z))
+                 (square (imag-part z)))))
+    (define (angle z)
+        (atan (imag-part z) (real-part z)))
+    (define (make-from-mag-ang r a)
+        (cons (* r (cos a)) (* r (sin a))))
+;;interface to the rest of the system
+    (define (tag x) (attach-tag 'rectangular x))
+    (put 'real-part 'rectangular real-part)
+    (put 'imag-part 'rectangular imag-part)
+    (put 'magnitude 'rectangular magnitude)
+    (put 'angle 'rectangular angle)
+    (put 'make-from-real-imag 'rectangular make-from-real-imag)
+    (put 'make-from-mag-ang 'rectangular make-from-mag-ang)
+    'done)
+```
 实现分发
+
+```clojure
+(define (apply-generic op . args)
+    (let ((type-tags (map type-tag args)))
+        (let ((proc (get op type-tags)))
+            (if proc
+                (apply proc (map contents args))
+                (error "No method for these types" (list op type-tags))))))
+
+(define (real-part z) (apply-generic 'real-part z))
+(define (imag-part z) (apply-generic 'imag-part z))
+(define (magnitude z) (apply-generic 'magnitude z))
+(define (angle z) (apply-generic 'angle z))
+(define (make-from-real-imag x y)
+    ((get 'make-from-real-imag 'rectangular) x y))
+(define (make-from-mag-ang r a)
+    ((get 'make-from-mag-ang 'rectangular) r a))
+```
+
+### 消息传递
+apply-generic实际上时按照操作进行分发。消息传递则是按照类型进行分发。
+
+```clojure
+(define (make-from-real-imag x y)
+    (define (dispatch op)
+        (cond ((eq? op 'real-part) x)
+              ((eq? op 'imag-part) y)
+              ((eq? op 'magnitude)
+               (sqrt (+ (square x) (square y))))
+              ((eq? op 'angle) (atan y x))
+              (else (error "Unknown op -- MAKE-FROM-REAL-IMAG" op))))
+    dispatch)
+
+(define (apply-generic op arg) (arg op))
+
+(define (make-from-mag-ang r a)
+    (define (dispatch op)
+        (cond ((eq? op 'real-part) (* r (cos a)))
+              ((eq? op 'imag-part) (* r (sin a)))
+              ((eq? op 'magnitude) r)
+              ((eq? op 'angle) a)
+              (else (error "Unknown op -- MAKE-FROM-MAG-ANG" op))))
+    dispatch)
+```
+数据导向：数据导向可以很方便地通过包机制增加新类型和新的通用操作，因此无论是增加新类型还是增加新操作，这种策略都很适合。
+
+消息传递：消息传递将数据对象和数据对象所需的操作整合在一起，因此它可以很方便地增加新类型，但是这种策略不适合增加新操作，因为每次为某个数据对象增加新操作之后，这个数据对象已有的实例全部都要重新实例化才能使用新操作。
 
 ## 不同类型数据的组合
 
