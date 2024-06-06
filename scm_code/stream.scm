@@ -1,0 +1,1 @@
+(stream-map (fn [x] (println x) x) (range 10))

@@ -875,6 +875,21 @@ If no frame in the sequence specifies a binding for the variable, then the varia
 
 ### 数字电路模拟器
 
+### 约束的传播
+`(adder a b c)`描述约束a+b=c，`(multiplier a b c)`描述约束a*b=c，
+`(constant 3.14 x)`描述约束x=3.14。
+
+![](./fig/约束网络.png)
+
+链接器被给定一个值时，唤醒所有与之相关的约束。
+
+#### 约束传播的实现
+* (has-value? connector)
+* (get-value connector)
+* (set-value! connector new-value informant)
+* (forget-value! connector retractor)
+* (connect connector new-constraint)
+
 ## 并发：时间是一个本质问题
 
 锁的实现：检查和设置之间禁止时间分片
@@ -884,6 +899,8 @@ If no frame in the sequence specifies a binding for the variable, then the varia
 延展->分布式系统中的并发
 
 ## Stream
+直接构造表的缺点是计算的开销，需要构造整张表，流构造部分的结构
+
 流：lazy的表
 
 * delay \<exp\> -> 延时对象

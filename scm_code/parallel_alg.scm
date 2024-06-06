@@ -1,0 +1,16 @@
+(define (make-serializer)
+  (let ((mutex (make-mutex)))
+    (lambda (proc)
+      (lambda args
+        (mutex-lock! mutex)
+        (let ((val (apply proc args)))
+          (mutex-unlock! mutex)
+          val)))))
+
+(define (make-mutex)
+  (let ((cell (cons #f #f)))
+    (define (the-mutex m)
+      (cond ((eq? m 'lock) (mutex-lock! cell))
+            ((eq? m 'unlock) (mutex-unlock! cell))
+            (else (error "Unknown operation -- MUTEX" m))))
+    the-mutex))
