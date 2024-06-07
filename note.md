@@ -901,10 +901,10 @@ If no frame in the sequence specifies a binding for the variable, then the varia
 ## Stream
 直接构造表的缺点是计算的开销，需要构造整张表，流构造部分的结构
 
-流：lazy的表
+流：lazy的表，cdr部分是一个延时求值的表达式
 
 * delay \<exp\> -> 延时对象
-* force 延时对象
+* force 对延时对象求值
 
 ```clojure
 (cons-stream <a> <b>)
@@ -912,9 +912,20 @@ If no frame in the sequence specifies a binding for the variable, then the varia
 (cons <a> (delay <b>))
 
 (define (stream-car stream) (car stream))
+;; 只有在需要时才求值
 (define (stream-cdr stream) (force (cdr stream)))
 ```
 ![](./fig/%E5%B1%8F%E5%B9%95%E6%88%AA%E5%9B%BE%202022-08-04%20000056.png)
+
+```clojure
+(define (stream-filter pred stream)
+    (cond ((stream-null? stream) the-empty-stream)
+          ((pred (stream-car stream))
+           (cons-stream (stream-car stream)
+                        (stream-filter pred
+                                       (stream-cdr stream))))
+          (else (stream-filter pred (stream-cdr stream)))))
+```
 
 流处理的每个阶段都仅仅活动到满足下一个阶段的程度，松弛了事件发生顺序和过程的表面结构的关系。
 

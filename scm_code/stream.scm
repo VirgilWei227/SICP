@@ -12,6 +12,11 @@
 (define (naturals n)
   (cons-stream n (lambda () (naturals (+ n 1)))))
 
+(define (stream-ref stream n)
+  (if (= n 0)
+      (stream-car stream)
+      (stream-ref (stream-cdr stream) (- n 1))))
+
 ;; 访问和操作流
 ;; 取出流的前N个元素
 (define (stream-take stream n)
