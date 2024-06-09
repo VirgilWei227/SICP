@@ -73,9 +73,34 @@ def sin_series():
     yield 0
     yield from integrate_series(cos_series())
 
+def scale_series(s, factor):
+    return map(lambda x: x * factor, s)
+
 def cos_series():
     yield 1
     yield from scale_series(integrate_series(sin_series()), -1)
+
+def pi_summands():
+    sign = -1
+    for i in integers_from(1):
+        sign *= -1
+        yield sign / (2 * i - 1)
+
+def pi_stream():
+    yield from scale_series(partial_sums(pi_summands()), 4)
+
+def euler_transform(s):
+    s0 = next(s)
+    s1 = next(s)
+    s2 = next(s)
+    while True:
+        yield s2 - (s2 - s1) ** 2 / (s0 - 2 * s1 + s2)
+        s0, s1, s2 = s1, s2, next(s)
+
+def make_tableaus(transform, s):
+    yield s
+    for t in make_tableaus(transform, transform(s)):
+        yield t
 
 if __name__ == '__main__':
     # for p in primes():
@@ -103,17 +128,12 @@ if __name__ == '__main__':
     #     if i > 100:
     #         break
 
-    for i in exp_series():
-        print(i)
+    for pi, i in zip(pi_stream(), integers_from(1)):
+        print(pi)
         if i > 10:
             break
 
-    # for i in sin_series():
-    #     print(i)
-    #     if i > 10:
-    #         break
-
-    # for i in cos_series():
-    #     print(i)
-    #     if i > 10:
-    #         break
+    for pi_transformed, i in zip(euler_transform(pi_stream), integers_from(1)):
+        print(pi_transformed)
+        if i > 10:
+            break
