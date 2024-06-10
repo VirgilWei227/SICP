@@ -987,7 +987,7 @@ If no frame in the sequence specifies a binding for the variable, then the varia
 
 ![](./fig/pair_S_T.png)
 
-### 流和延时求值
+### 流和延时求值（需要重新学习）
 delay至关重要！
 
 变动性和和延时求值在程序设计语言里结合的不好。（ex-3.51, ex-3.52）

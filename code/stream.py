@@ -23,3 +23,22 @@ class Stream:
 
     def __repr__(self):
         return 'Stream({0}, <...>)'.format(repr(self.first))
+
+
+def integer_stream(first):
+    def compute_rest():
+        return integer_stream(first + 1)
+    return Stream(first, compute_rest)
+
+if __name__ == '__main__':
+    s = integer_stream(1)
+    print(s.first)
+    print(s.rest.first)
+    print(s.rest.rest.first)
+    print(s.rest.rest.rest.first)
+    print(s.rest.rest.rest.rest.first)
+    print(s.rest.rest.rest.rest.rest.first)
+    print(s.rest.rest.rest.rest.rest.rest.first)
+    print(s.rest.rest.rest.rest.rest.rest.rest.first)
+    print(s.rest.rest.rest.rest.rest.rest.rest.rest.first)
+    print(s.rest.rest.rest.rest.rest.rest.rest.rest.rest.first)
