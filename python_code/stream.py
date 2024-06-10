@@ -94,7 +94,12 @@ def euler_transform(s):
     s1 = next(s)
     s2 = next(s)
     while True:
-        yield s2 - (s2 - s1) ** 2 / (s0 - 2 * s1 + s2)
+        denominator = s0 - 2 * s1 + s2
+        if denominator != 0:
+            yield s2 - (s2 - s1) ** 2 / denominator
+        else:
+            # 可以选择在这里yield None或者某个特定的错误值，或者直接跳过
+            pass
         s0, s1, s2 = s1, s2, next(s)
 
 def make_tableaus(transform, s):
@@ -102,38 +107,21 @@ def make_tableaus(transform, s):
     for t in make_tableaus(transform, transform(s)):
         yield t
 
+def pi_tableaus():
+    for t in make_tableaus(euler_transform, pi_stream()):
+        yield next(t)
+
 if __name__ == '__main__':
-    # for p in primes():
-    #     print(p)
-    #     if p > 100:
-    #         break
-
-    # for i in other_integers():
-    #     print(i)
-    #     if i > 100:
-    #         break
-
-    # for i in partial_sums(integers_from(1)):
-    #     print(i)
-    #     if i > 10:
-    #         break
-
-    # for i in factorial():
-    #     print(i)
-    #     if i > 30:
-    #         break
-
-    # for i in hamming_numbers():
-    #     print(i)
-    #     if i > 100:
-    #         break
-
     for pi, i in zip(pi_stream(), integers_from(1)):
         print(pi)
         if i > 10:
             break
 
-    for pi_transformed, i in zip(euler_transform(pi_stream), integers_from(1)):
+    for pi_transformed, i in zip(euler_transform(pi_stream()), integers_from(1)):
         print(pi_transformed)
         if i > 10:
             break
+
+    pi_tableau_gen = pi_tableaus()
+    for i in range(1, 11):
+        print(next(pi_tableau_gen))
