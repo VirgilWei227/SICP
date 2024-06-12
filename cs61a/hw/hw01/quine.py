@@ -1,0 +1,1 @@
+x = "print('x = %r;' % x, x)"; print('x = %r;' % x, x)
