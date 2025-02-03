@@ -868,8 +868,8 @@ If no frame in the sequence specifies a binding for the variable, then the varia
 * make-queue
 * empty-queue?
 * front-queue (不修改队列)
-* insert-queue! <queue><item>
-* delete-queue! <queue>
+* insert-queue! \<queue\>\<item\> 
+* delete-queue! \<queue\>
 
 ### 表格的表示
 
