@@ -997,3 +997,120 @@ delay至关重要！
 Like an Link, the rest of a Stream is itself a Stream. Unlike an Link, the rest of a stream is only computed when it is looked up, rather than being stored in advance. 
 
 rest 部分惰性求值
+
+# 元语言抽象
+Metalinguistic abstraction，通过语言描述语言，创建新的语言。
+
+## 元循环求值器
+1. 在求职一个组合式时，先求值所有子表达式，而后将运算符子表达式的值作用域运算对象子表达式的值
+2. 在将一个复合过程用于一组参数时，在一个新的环境里求职这个过程的体。
+
+### 求值器的内核
+求值过程可以描述为两个过程eval和apply之间的相互作用
+#### eval
+eval的参数是一个表达式和一个环境，eval对表达式进行分类，依此引导自己的求值工作。
+eval的构造就像是一个针对被求值表达式的语法类型的分情况分析。
+
+1. 基本表达式：
+    * 对于自求值表达式，例如各种数，eval直接返回这个表达式本身
+    * 对于变量，eval在环境中查找变量的值
+2. 特殊形式：
+    * 对于加引号的表达式，eval返回被引的表达式
+    * 对于变量的赋值或定义，就需要递归的调用eval去计算出需要关联于这个变量的新值。而后需要修改环境，以改变或建立相应变量的约束
+    * 一个if表达式要求对其中各部分，根据谓词的真假对两个部分条件求值
+    * 一个lambda表达式要求构造一个过程，将这个lambda表达式所描述的参数表和体与对应的求值环境包装起来
+    * 一个begin表达式要求求职其中的一系列表达式，按照他们出现的顺序
+    * cond变换为一组嵌套的if表达式
+3. 组合式：
+    * 对于一个过程应用，eval必须递归地求值运算符和运算对象，然后将这样得到的过程和参数送给apply，由它去处理实际的过程应用
+
+```clojure
+(define (eval exp env)
+    (cond ((self-evaluating? exp) exp)
+        ((variable? exp) (lookup-variable-value exp env))
+        ((quoted? exp) (text-of-quotation exp))
+        ((assignment? exp) (eval-assignment exp env))
+        ((definition? exp) (eval-definition exp env))
+        ((if? exp) (eval-if exp env))
+        ((lambda? exp)
+            (make-procedure (lambda-parameters exp)
+                            (lambda-body exp)
+                            env))
+        ((begin? exp)
+            (eval-sequence (begin-actions exp) env))
+        ((cond? exp) (eval (cond->if exp) env))
+        ((application? exp)
+            (apply (eval (operator exp) env)
+                (list-of-values (operands exp) env)))
+        (else
+            (error "Unknown expression type -- EVAL" exp))))
+```
+
+#### apply
+apply的参数是一个过程和一组参数，apply对过程进行分类，依此引导自己的应用工作。
+1. 基本过程：
+    * 对于基本过程，apply调用apply-primitive-procedure去应用基本过程
+    * 对于复合过程，apply顺序地求值组成该过程体地那些表达式。扩充该过程携带的基本环境，将过程地各个形参与实参相对应。
+
+```clojure
+(define (apply procedure arguments)
+    (cond ((primitive-procedure? procedure)
+            (apply-primitive-procedure procedure arguments))
+        ((compound-procedure? procedure)
+            (eval-sequence
+                (procedure-body procedure)
+                (extend-environment
+                    (procedure-parameters procedure)
+                    arguments
+                    (procedure-environment procedure))))
+        (else
+            (error "Unknown procedure type -- APPLY" procedure))))
+```
+
+#### 过程参数
+eval使用list-of-values生成实参表
+
+```clojure
+(define (list-of-values exps env)
+    (if (no-operands? exps)
+        '()
+        (cons (eval (first-operand exps) env)
+            (list-of-values (rest-operands exps) env))))
+```
+
+#### 条件
+```clojure
+(define (eval-if exp env)
+    (if (true? (eval (if-predicate exp) env))
+        (eval (if-consequent exp) env)
+        (eval (if-alternative exp) env)))
+```
+求值器中所采用的真值表示，可以与基础的Scheme实现不同。
+
+#### 序列
+对于apply，eval-sequence的作用是求值一个序列中的各个表达式。
+对于eval，eval-sequence的作用是求值begin表达式中的各个子表达式，返回最后一个子表达式的值。
+```clojure
+(define (eval-sequence exps env)
+    (cond ((last-exp? exps) (eval (first-exp exps) env))
+        (else (eval (first-exp exps) env)
+            (eval-sequence (rest-exps exps) env))))
+```
+
+#### 赋值和定义
+eval-assignment找出需要赋值的变量，eval求出新值，将变量和得到的值传给set-variable-value!，以便修改环境。
+```clojure
+(define (eval-assignment exp env)
+    (set-variable-value! (assignment-variable exp)
+                        (eval (assignment-value exp) env)
+                        env)
+    'ok)
+
+(define (eval-definition exp env)
+    (define-variable! (definition-variable exp)
+                    (eval (definition-value exp) env)
+                    env)
+    'ok)
+```
+
+### 表达式的表示
