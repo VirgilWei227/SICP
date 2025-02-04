@@ -1114,3 +1114,107 @@ eval-assignment找出需要赋值的变量，eval求出新值，将变量和得�
 ```
 
 ### 表达式的表示
+
+采用数据抽象技术，被求值的语言的语法形式可以仅仅有一些对表达式进行分类和提取表达式片段的过程决定
+* 自求值表达只有数和字符串
+```clojure
+(define (self-evaluating? exp)
+	(cond ((number? exp) true)
+		  ((string? exp) true)
+		  (else false)))
+```
+ * 变量用符号表示
+```clojure
+(define (variable? exp) (symbol? exp))
+```
+ * 引号表达式的形式`(quote <text-of-quotation>)`
+```clojure
+(definne (quoted? exp)
+	(tagged-list? exp 'quote))
+(define (text-of-quotation exp) (cadr exp))
+(define (tagged-list? exp tag)
+	(if (pair? exp)
+		(eq? (car exp) tag)
+		false))
+```
+* 赋值的形式是（`set! <var> <value>`）
+```clojure
+(define (assignment? exp)
+	(tagged-list? exp 'set!))
+(define (assignment-variable exp) (cadr exp))
+(define (assignment-value exp) (caddr exp))
+```
+* 定义的形式是`(define <var> <value>)`或`(define (<var> <parameter1> ... <paramtern>) <body>)`
+```clojure
+(define (definiton? exp)
+	(tagged-list? exp 'define))
+(define (definition-variable exp)
+	(if (symbol? (cadr exp))
+		(cadr exp)
+		(caadr exp)))
+(define (definition-value exp)
+	(if (symbol? (cadr exp))
+		(caddr exp)
+		(make-lambda (cdadr exp)   ; formal parameters
+					 (cddr exp)))) ; body
+```
+* lambda表达式是由符号lambda开始的表
+```clojure
+(define (lambda? exp) (tagged-list? exp 'lambda))
+(define (lambda-parameters exp) (cadr exp))
+(define (lambda-body exp) (cddr exp))
+(define (make-lambda parameters body)
+	(cons 'lambda (cons parameters body)))
+```
+* 条件式由if开始，有一个谓词部分、一个分支A、一个分支B（可省略）
+```clojure
+(define (if? exp) (tagged-list? exp 'if))
+(define (if-predicate exp) (cadr exp))
+(define (if-consequent exp) (caddr exp))
+(define (if-alternative exp)
+	(if (not (null? (cdddr exp)))
+		(cadddr exp)
+		'false))
+(define (make-if predicate consequent alternative)
+	(list 'if preficate consequent alternative))
+```
+* begin包装一个表达式序列，提供从begin表达式中提取出实际表达式序列的功能。提供选择函数返回序列中的第一个表达式和其余表达式
+```clojure
+(define (begin> exp) (tagged-list? exp 'begin))
+(define (begin-actions exp) (cdr exp))
+(define (last-exp? seq) (null? (cdr seq)))
+(define (first-exp seq) (car seq))
+(define (rest-exps seq) (cdr seq))
+(define (sequence-exp seq)
+	(cond ((null? seq) seq)
+		  ((last-exp? seq) (first-exp seq))
+		  (else (make-begin seq))))
+(define (make-begin seq) (cons 'begin seq))
+```
+* 过程应用就是不属于上述各种表达式类型任意复合表达式。这种表达式的car是运算符，cdr是运算对象的表
+```clojure
+(define (application? exp) (pair? exp))
+(define (operator exp) (car exp))
+(define (operands exp) (cdr exp))
+(define (no-operands? ops) (null? ops))
+(define (first-operand ops) (car ops))
+(define (rest-operands ops) (cdr ops))
+```
+
+#### 派生表达式
+
+cond表达式可以等假的转换为if+begin
+```clojure
+(define (cond? exp) (tagged-list? exp 'cond))
+(define (cond-clauses exp) (cdr exp))
+(define (cond-else-clause? clause)
+	(eq? (cond-predicate clause) 'else))
+(define (cond-predicate clause) (car clause))
+(define (cond-actions clause) (cdr clause))
+(define (cond->if exp)
+	(expand-clauses (cond-clauses exp)))
+(define (expand-clauses clauses)
+	(if (null? clauses)
+		'false
+		(let ((first (car clauses))))))
+```
